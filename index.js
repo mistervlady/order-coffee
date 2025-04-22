@@ -1,10 +1,15 @@
 document.addEventListener("DOMContentLoaded", () => {
     const form = document.querySelector("form");
     const addButton = document.querySelector(".add-button");
+    const submitButton = document.querySelector(".submit-button");
 
     function updateHeaders() {
         document.querySelectorAll(".beverage").forEach((fieldset, index) => {
             fieldset.querySelector(".beverage-count").textContent = `Напиток №${index + 1}`;
+            const milkInputs = fieldset.querySelectorAll("input[type=radio]");
+            milkInputs.forEach(input => {
+                input.name = `milk-${index + 1}`;
+            });
         });
     }
 
@@ -45,16 +50,20 @@ document.addEventListener("DOMContentLoaded", () => {
         if (oldRemove) oldRemove.remove();
 
         addRemoveButton(clone);
-
         lastBeverage.insertAdjacentElement("afterend", clone);
         updateHeaders();
     });
 
     const initialBeverage = document.querySelector(".beverage");
     addRemoveButton(initialBeverage);
+    updateHeaders();
 
-    function createModal(orderCount) {
+    function createModal(orderCount, beverageData) {
+        const existingOverlay = document.querySelector(".modal-overlay");
+        if (existingOverlay) existingOverlay.remove();
+
         const overlay = document.createElement("div");
+        overlay.classList.add("modal-overlay");
         overlay.style.position = "fixed";
         overlay.style.top = "0";
         overlay.style.left = "0";
@@ -112,27 +121,18 @@ document.addEventListener("DOMContentLoaded", () => {
     `;
 
         const tbody = table.querySelector("tbody");
-        const beverages = document.querySelectorAll(".beverage");
 
-        beverages.forEach(fieldset => {
-            const drink = fieldset.querySelector("select").selectedOptions[0].textContent;
-            const milk = fieldset.querySelector("input[type=radio]:checked").nextElementSibling.textContent;
-
-            const additions = Array.from(fieldset.querySelectorAll("input[type=checkbox]:checked"))
-                .map(cb => cb.nextElementSibling.textContent)
-                .join(", ");
-
+        beverageData.forEach(data => {
             const row = document.createElement("tr");
             row.innerHTML = `
-        <td style="border: 1px solid #ccc; padding: 5px;">${drink}</td>
-        <td style="border: 1px solid #ccc; padding: 5px;">${milk}</td>
-        <td style="border: 1px solid #ccc; padding: 5px;">${additions}</td>
+        <td style="border: 1px solid #ccc; padding: 5px;">${data.drink}</td>
+        <td style="border: 1px solid #ccc; padding: 5px;">${data.milk}</td>
+        <td style="border: 1px solid #ccc; padding: 5px;">${data.additions}</td>
       `;
             tbody.appendChild(row);
         });
 
         content.appendChild(table);
-
         modal.appendChild(closeButton);
         modal.appendChild(content);
         overlay.appendChild(modal);
@@ -141,7 +141,23 @@ document.addEventListener("DOMContentLoaded", () => {
 
     form.addEventListener("submit", (event) => {
         event.preventDefault();
+
         const beverages = document.querySelectorAll(".beverage");
-        createModal(beverages.length);
+        const beverageData = [];
+
+        beverages.forEach((fieldset, index) => {
+            const drink = fieldset.querySelector("select").selectedOptions[0].textContent;
+
+            const milkRadio = fieldset.querySelector(`input[name="milk-${index + 1}"]:checked`);
+            const milk = milkRadio ? milkRadio.nextElementSibling.textContent : "";
+
+            const additions = Array.from(fieldset.querySelectorAll("input[type=checkbox]:checked"))
+                .map(cb => cb.nextElementSibling.textContent)
+                .join(", ");
+
+            beverageData.push({ drink, milk, additions });
+        });
+
+        createModal(beverages.length, beverageData);
     });
 });
